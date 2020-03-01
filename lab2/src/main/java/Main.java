@@ -1,4 +1,4 @@
-
+import javafx.util.Pair;
 
 public class Main {
     public static void main(String[] args) {
@@ -6,9 +6,9 @@ public class Main {
         String password = new String("zxcvasd");
         DES d = new DES(password);
         System.out.println(s + "\t\tstart");
-        s = d.encrypt(s);
-        System.out.println(s + "\t\tbetween");
-        s = d.decrypt(s);
+        Pair<String,String> p = d.encrypt(s);
+        System.out.println(p.getValue() + "\t\tbetween");
+        s = d.decrypt(p);
         System.out.println(s + "\t\tend");
     }
 }

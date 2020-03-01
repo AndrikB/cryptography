@@ -1,4 +1,9 @@
+import javafx.util.Pair;
 import sun.security.util.BitArray;
+
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Random;
 
 import static p.Helper.*;
 
@@ -187,26 +192,40 @@ public class DES {
         }
     }
 
-    public String encrypt(String s) {
+    public Pair<String, String> encrypt(String s) {
         while (s.length() % 8 != 0)
             s = s.concat(String.valueOf('\0'));
         String result = "";
+
+
+        byte[] array = new byte[8]; // length is bounded by 7
+        new Random().nextBytes(array);
+        String vectorInit = new String(array, StandardCharsets.UTF_8);
+        BitArray previousEncryptedBlock = new BitArray(64, vectorInit.getBytes());
+
 
         BitArray b = new BitArray(64);
         BitArray bitArray;
 
         for (int i = 0; i < s.length() / 8; i++) {
             bitArray = new BitArray(64, s.substring(i * 8, (i + 1) * 8).getBytes());
+            for (int j = 0; j < 64; j++) {
+                bitArray.set(j, previousEncryptedBlock.get(j) ^ bitArray.get(j));
+            }
             replaseS(bitArray, b);
             feistelEncrypt(b);
             replaseB(b, bitArray);
 
+            previousEncryptedBlock = bitArray;
             result = result.concat(new String(bitArray.toByteArray()));
         }
-        return result;
+
+        return new Pair<>(vectorInit, result);
     }
 
-    public String decrypt(String s) {
+    public String decrypt(Pair<String, String> p) {
+        String s = p.getValue();
+        BitArray previousEncryptedBlock = new BitArray(64, p.getKey().getBytes());
         if (s.length() % 8 != 0)
             throw new IllegalArgumentException("s has incorrect size");
 
@@ -214,12 +233,19 @@ public class DES {
 
         BitArray b = new BitArray(64);
         BitArray bitArray;
+
+
         for (int i = 0; i < s.length() / 8; i++) {
+            if (i != 0)
+                previousEncryptedBlock = new BitArray(64, s.substring((i - 1) * 8, (i) * 8).getBytes());
             bitArray = new BitArray(64, s.substring(i * 8, (i + 1) * 8).getBytes());
             replaseS(bitArray, b);
             feistelDecrypt(b);
             replaseB(b, bitArray);
 
+            for (int j = 0; j < 64; j++) {
+                bitArray.set(j, previousEncryptedBlock.get(j) ^ bitArray.get(j));
+            }
             result = result.concat(new String(bitArray.toByteArray()));
         }
 
