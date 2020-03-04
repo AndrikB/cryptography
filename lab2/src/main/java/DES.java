@@ -1,32 +1,9 @@
-import javafx.util.Pair;
 import sun.security.util.BitArray;
-
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.Random;
 
 import static p.Helper.*;
 
-@SuppressWarnings("fallthrough")
+
 public class DES {
-    private BitArray newKey = new BitArray(64);
-
-    DES(String keyS) {
-
-        if (keyS.length() != 7)
-            throw new IllegalArgumentException("Key has incorrect size");
-        BitArray key = new BitArray(56, keyS.getBytes());
-        for (int i = 0; i < 8; i++) {
-            boolean b1 = true;
-            for (int j = 0; j < 7; j++) {
-                newKey.set(i * 8 + j, key.get(i * 7 + j));
-                b1 = b1 ^ key.get(i * 7 + j);
-            }
-            newKey.set(i * 7 + 7, b1);
-        }
-
-
-    }
 
     //split block 48 bit to 8 block 6bit
     private BitArray[] splitBlock(BitArray E) {
@@ -41,34 +18,42 @@ public class DES {
         return blocks;
     }
 
-
-    private BitArray feistelHelper(BitArray R, BitArray K) {
-        //System.out.println(R.toString() + "\t\t" + "input feistelHelper");
-        BitArray result = new BitArray(32);
+    //extend input block from 32 bit to 48
+    private BitArray extendBlock(BitArray R) {
         BitArray E = new BitArray(48);
         for (int i = 0; i < 48; i++) {
             E.set(i, R.get(extensionTable[i]));
         }
+        return E;
+    }
 
-        for (int i = 0; i < 48; i++) {
-            E.set(i, E.get(i) ^ K.get(i));
+    private BitArray xor(BitArray a, BitArray b) {
+        if (a.length() != b.length()) throw new IllegalArgumentException("input has no same size");
+
+        BitArray result = new BitArray(b.length());
+        for (int i = 0; i < a.length(); i++) {
+            result.set(i, a.get(i) ^ b.get(i));
         }
+        return result;
+    }
 
-        BitArray[] blocks = splitBlock(E);
+
+    private BitArray feistelHelper(BitArray R, BitArray key) {
+        BitArray result = new BitArray(32);
+
+        BitArray extendBlock = extendBlock(R);
+        extendBlock = xor(extendBlock, key);
+
+
+        BitArray[] blocks = splitBlock(extendBlock);
         BitArray tempRes = new BitArray(32);
-        BitArray block;
         for (int i = 0; i < 8; i++) {
-            block = blocks[i];
-            int a = toInt(block.get(0)) * 2 + toInt(block.get(5));
-            int b = toInt(block.get(1)) * 8 + toInt(block.get(2)) * 4 + toInt(block.get(3)) * 2 + toInt(block.get(4));
+            int a = toInt(blocks[i].get(0)) * 2 + toInt(blocks[i].get(5));
+            int b = toInt(blocks[i].get(1)) * 8 + toInt(blocks[i].get(2)) * 4 + toInt(blocks[i].get(3)) * 2 + toInt(blocks[i].get(4));
             int c = blockTransformationTables[i][a][b];
-            boolean[] arr = new boolean[4];
-            for (int j = 0; j < 4; j++) {
-                arr[3 - j] = (c % 2 == 1);
-                c = (c - c % 2) / 2;
-            }
-            for (int j = 0; j < 4; j++) {
-                tempRes.set(i * 4 + j, arr[j]);
+            for (int j = 3; j >= 0; j--) {
+                tempRes.set(i * 4 + j, (c % 2 == 1));
+                c = c / 2;
             }
 
         }
@@ -78,175 +63,121 @@ public class DES {
         return result;
     }
 
-    public void leftShift(BitArray bitArray, int a) {
-        while (a != 0) {
-            a--;
-            boolean b = bitArray.get(0);
-            for (int i = 0; i < 27; i++) {
-                bitArray.set(i, bitArray.get(i + 1));
-            }
-            bitArray.set(27, b);
-        }
-    }
 
-    public void rightShift(BitArray bitArray, int a) {
-        while (a != 0) {
-            a--;
-            boolean b = bitArray.get(27);
-            for (int i = 27; i > 0; i--) {
-                bitArray.set(i, bitArray.get(i - 1));
-            }
-            bitArray.set(0, b);
-        }
-    }
-
-    //create key from C and D array
-    private BitArray getKey(BitArray C, BitArray D) {
-        BitArray result = new BitArray(48);
-        for (int i = 0; i < 48; i++) {
-            if (keyCreateTable[i] < 28)
-                result.set(i, C.get(keyCreateTable[i]));
-            else result.set(i, D.get(keyCreateTable[i] - 28));
-        }
-        return result;
-    }
-
-
-    private BitArray feistelEncrypt(BitArray b) {
-        BitArray L = new BitArray(32), R = new BitArray(32), temp;
+    private BitArray feistelEncrypt(BitArray input, Key key) {
+        BitArray output = new BitArray(64),
+                L = new BitArray(32),
+                R = new BitArray(32),
+                temp, f;
         for (int i = 0; i < 32; i++) {
-            L.set(i, b.get(i));
-            R.set(i, b.get(i + 32));
-        }
-
-        BitArray C = new BitArray(28), D = new BitArray(28);
-        for (int i = 0; i < 28; i++) {
-            C.set(i, newKey.get(replaseTableC[i]));
-            D.set(i, newKey.get(replaseTableD[i]));
+            L.set(i, input.get(i));
+            R.set(i, input.get(i + 32));
         }
 
         for (int i = 0; i < 16; i++) {
-            leftShift(C, shiftTable[i]);
-            leftShift(D, shiftTable[i]);
-            BitArray key = getKey(C, D);
-            temp = new BitArray(R.length(), R.toByteArray());
-            BitArray f = feistelHelper(R, key);
-            for (int j = 0; j < 32; j++) {
-                R.set(j, L.get(j) ^ f.get(j));
-            }
+            BitArray subKey = key.getKey(i);
+            temp = R;
+            f = feistelHelper(R, subKey);
+            R = xor(L, f);
             L = temp;
-
         }
 
         for (int i = 0; i < 32; i++) {
-            b.set(i, L.get(i));
-            b.set(i + 32, R.get(i));
+            output.set(i, L.get(i));
+            output.set(i + 32, R.get(i));
         }
 
-        return b;
+        return output;
     }
 
-    private BitArray feistelDecrypt(BitArray b) {
-        BitArray L = new BitArray(32), R = new BitArray(32), temp;
+    private BitArray feistelDecrypt(BitArray b, Key key) {
+        BitArray output = new BitArray(64),
+                L = new BitArray(32),
+                R = new BitArray(32),
+                temp, f;
         for (int i = 0; i < 32; i++) {
             L.set(i, b.get(i));
             R.set(i, b.get(i + 32));
         }
 
-        BitArray C = new BitArray(28), D = new BitArray(28);
-        for (int i = 0; i < 28; i++) {
-            C.set(i, newKey.get(replaseTableC[i]));
-            D.set(i, newKey.get(replaseTableD[i]));
-        }
-
         for (int i = 0; i < 16; i++) {
-            BitArray key = getKey(C, D);
-
-            temp = new BitArray(L.length(), L.toByteArray());
-            BitArray f = feistelHelper(L, key);
-            for (int j = 0; j < 32; j++) {
-                L.set(j, R.get(j) ^ f.get(j));
-            }
+            BitArray subKey = key.getKey(15 - i);
+            temp = L;
+            f = feistelHelper(L, subKey);
+            L = xor(R, f);
             R = temp;
-            rightShift(C, shiftTable[15 - i]);
-            rightShift(D, shiftTable[15 - i]);
         }
 
         for (int i = 0; i < 32; i++) {
-            b.set(i, L.get(i));
-            b.set(i + 32, R.get(i));
+            output.set(i, L.get(i));
+            output.set(i + 32, R.get(i));
         }
-
-        return b;
+        return output;
     }
 
-    private void replaseS(BitArray from, BitArray to) {
+    private BitArray replaseS(BitArray input) {
+        BitArray output=new BitArray(input.length());
         for (int i = 0; i < 64; i++) {
-            to.set(i, from.get(replaseTable1[i]));
+            output.set(i, input.get(replaseTable1[i]));
         }
+        return output;
     }
 
-    private void replaseB(BitArray from, BitArray to) {
+    private BitArray replaseB(BitArray input) {
+        BitArray output=new BitArray(input.length());
         for (int i = 0; i < 64; i++) {
-            to.set(replaseTable1[i], from.get(i));
+            output.set(replaseTable1[i], input.get(i));
         }
+        return output;
     }
 
-    public Pair<String, String> encrypt(String s) {
-        while (s.length() % 8 != 0)
-            s = s.concat(String.valueOf('\0'));
+    public String encrypt(String input, String keyS, String initStr) {
+        Key key = new Key(keyS);
+
+        while (input.length() % 8 != 0)
+            input = input.concat(String.valueOf('\0'));
+        String output = "";
+
+        BitArray previousEncryptedBlock = new BitArray(64, initStr.getBytes());
+
+
+        for (int i = 0; i < input.length() / 8; i++) {
+            BitArray arr = new BitArray(64, input.substring(i * 8, (i + 1) * 8).getBytes());
+
+            arr = xor(previousEncryptedBlock, arr);
+
+            arr=replaseS(arr);
+            arr = feistelEncrypt(arr, key);
+            arr=replaseB(arr);
+
+            previousEncryptedBlock = arr;
+            output = output.concat(new String(arr.toByteArray()));
+        }
+
+        return output;
+    }
+
+    public String decrypt(String input, String keyS, String initStr) {
+        if (input.length() % 8 != 0)
+            throw new IllegalArgumentException("input has incorrect size");
+
+        Key key = new Key(keyS);
         String result = "";
 
+        BitArray previousEncryptedBlock = new BitArray(64, initStr.getBytes());
 
-        byte[] array = new byte[8]; // length is bounded by 7
-        new Random().nextBytes(array);
-        String vectorInit = new String(array, StandardCharsets.UTF_8);
-        BitArray previousEncryptedBlock = new BitArray(64, vectorInit.getBytes());
-
-
-        BitArray b = new BitArray(64);
-        BitArray bitArray;
-
-        for (int i = 0; i < s.length() / 8; i++) {
-            bitArray = new BitArray(64, s.substring(i * 8, (i + 1) * 8).getBytes());
-            for (int j = 0; j < 64; j++) {
-                bitArray.set(j, previousEncryptedBlock.get(j) ^ bitArray.get(j));
-            }
-            replaseS(bitArray, b);
-            feistelEncrypt(b);
-            replaseB(b, bitArray);
-
-            previousEncryptedBlock = bitArray;
-            result = result.concat(new String(bitArray.toByteArray()));
-        }
-
-        return new Pair<>(vectorInit, result);
-    }
-
-    public String decrypt(Pair<String, String> p) {
-        String s = p.getValue();
-        BitArray previousEncryptedBlock = new BitArray(64, p.getKey().getBytes());
-        if (s.length() % 8 != 0)
-            throw new IllegalArgumentException("s has incorrect size");
-
-        String result = "";
-
-        BitArray b = new BitArray(64);
-        BitArray bitArray;
-
-
-        for (int i = 0; i < s.length() / 8; i++) {
+        for (int i = 0; i < input.length() / 8; i++) {
             if (i != 0)
-                previousEncryptedBlock = new BitArray(64, s.substring((i - 1) * 8, (i) * 8).getBytes());
-            bitArray = new BitArray(64, s.substring(i * 8, (i + 1) * 8).getBytes());
-            replaseS(bitArray, b);
-            feistelDecrypt(b);
-            replaseB(b, bitArray);
+                previousEncryptedBlock = new BitArray(64, input.substring((i - 1) * 8, (i) * 8).getBytes());
 
-            for (int j = 0; j < 64; j++) {
-                bitArray.set(j, previousEncryptedBlock.get(j) ^ bitArray.get(j));
-            }
-            result = result.concat(new String(bitArray.toByteArray()));
+            BitArray arr = new BitArray(64, input.substring(i * 8, (i + 1) * 8).getBytes());
+
+            arr=replaseS(arr);
+            arr=feistelDecrypt(arr, key);
+            arr=replaseB(arr);
+
+            arr = xor(previousEncryptedBlock, arr);
+            result = result.concat(new String(arr.toByteArray()));
         }
 
         return result;
