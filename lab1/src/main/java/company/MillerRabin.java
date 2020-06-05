@@ -1,4 +1,4 @@
-package com.company;
+package company;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

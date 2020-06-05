@@ -1,4 +1,4 @@
-package com.company;
+package company;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -7,14 +7,13 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 
 public class Montgomery {
-    public static BigInteger MR(BigInteger T, BigInteger N, BigInteger R, int pow) {
+    private static BigInteger MR(BigInteger T, BigInteger N, BigInteger R, int pow) {
         BigInteger[] array = ExtendedEuclid.extendedAlgorithm(N, R);
         BigInteger d = array[0];
 
-        if (!d.equals(BigInteger.ONE))
+        if (!d.equals(BigInteger.ONE)) {
             throw new IllegalArgumentException("GCD(N,R) != 1");
-        if (T.compareTo(N.shiftLeft(pow)) >= 0)
-            throw new IllegalArgumentException("T >= NR");
+        }
 
         BigInteger invN = array[1];
         BigInteger minusInvN = invN.negate();
@@ -76,8 +75,9 @@ public class Montgomery {
         } else if (oper.equals("pow")) {
             res = pow(x, y, R, N, pow);
             res_real = x.modPow(y, N);
-        } else
+        } else {
             throw new IllegalArgumentException("Invalid operation: " + oper);
+        }
         System.out.printf("%d%s%d mod %d", x, oper.equals("times") ? " * " : "^", y, N);
         System.out.println(" = " + res);
         System.out.println("Real result = " + res_real);
