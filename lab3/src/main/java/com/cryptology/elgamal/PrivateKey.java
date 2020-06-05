@@ -3,7 +3,7 @@ package com.cryptology.elgamal;
 import java.math.BigInteger;
 
 public class PrivateKey {
-    private BigInteger key;
+    private final BigInteger key;
 
     public PrivateKey(BigInteger x){
         this.key = x;

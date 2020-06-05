@@ -9,14 +9,14 @@ import java.util.Random;
  * Implementation of encryptor using ElGamal scheme.
  * Contains methods for string and byte array encryption/decryption
  */
-public class Encryptor {
+public class Encryptors {
     private final Key key;
 
     /**
      * @param key The key of encryption generated with Key.generateKey(bitlength) static method.
      *            3 < key.publicKey.p.bitlength <= 20
      */
-    public Encryptor(Key key) {
+    public Encryptors(Key key) {
         this.key = key;
     }
 
@@ -35,16 +35,16 @@ public class Encryptor {
      * @return array of messages, each message represents one encrypted character of input string (sequentially).
      */
     public ArrayList<Message> encryptString(String s) {
-        ArrayList<Message> ciphertextMessages = new ArrayList<>();
+        ArrayList<Message> cipherTextMessages = new ArrayList<>();
 
         byte[] byteInput = s.getBytes();
         byte[] byteInputStub = new byte[1];
         for (byte b : byteInput) {
             byteInputStub[0] = b;
-            ciphertextMessages.add(this.encrypt(byteInputStub));
+            cipherTextMessages.add(this.encrypt(byteInputStub));
         }
 
-        return ciphertextMessages;
+        return cipherTextMessages;
     }
 
     public String decryptString(ArrayList<Message> ciphertextMessages) {

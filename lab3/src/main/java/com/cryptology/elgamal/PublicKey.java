@@ -3,7 +3,9 @@ package com.cryptology.elgamal;
 import java.math.BigInteger;
 
 public class PublicKey {
-    private BigInteger keyY, keyG, keyP;
+    private final BigInteger keyY;
+    private final BigInteger keyG;
+    private final BigInteger keyP;
 
     public PublicKey(BigInteger y, BigInteger g, BigInteger p){
         this.keyY = y;
