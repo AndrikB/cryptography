@@ -75,7 +75,7 @@ public class Encryptors {
      * 1 < k < p - 1
      */
     private int generateRandomKByP(BigInteger p) {
-        Random random = new Random(new Date().getTime());
+        Random random = new Random();
 
         //guaranteed k > 0 (at least 2), and in range of int size
         if (p.bitLength() > 32) {
