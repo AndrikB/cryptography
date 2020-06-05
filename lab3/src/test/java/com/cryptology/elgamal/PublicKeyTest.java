@@ -16,7 +16,7 @@ public class PublicKeyTest {
     private PublicKey publicKey1, publicKey2;
 
     @Before
-    public void setUp() throws Exception{
+    public void setUp() {
         publicKey1 = new PublicKey(expectedY1, expectedG1, expectedP1);
         publicKey2 = new PublicKey(expected2, expected2, expected2);
     }
