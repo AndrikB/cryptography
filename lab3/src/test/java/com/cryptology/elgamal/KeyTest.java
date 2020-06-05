@@ -4,12 +4,12 @@ import org.junit.Test;
 
 import java.math.BigInteger;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class KeyTest {
 
     @Test
-    public void pKeyBitLength() throws Exception {
+    public void pKeyBitLength() {
         Key key1 = Key.generateKey(4);
         Key key2 = Key.generateKey(10);
         Key key3 = Key.generateKey(16);
@@ -22,7 +22,7 @@ public class KeyTest {
     }
 
     @Test
-    public void xLessThanP() throws Exception {
+    public void xLessThanP() {
         Key key1 = Key.generateKey(4);
         Key key2 = Key.generateKey(10);
         Key key3 = Key.generateKey(16);
@@ -35,7 +35,7 @@ public class KeyTest {
     }
 
     @Test
-    public void gLessThanP() throws Exception {
+    public void gLessThanP() {
         Key key1 = Key.generateKey(4);
         Key key2 = Key.generateKey(10);
         Key key3 = Key.generateKey(16);
@@ -49,18 +49,18 @@ public class KeyTest {
     }
 
     @Test
-    public void gPrimitiveRootModuloP() throws Exception {
+    public void gPrimitiveRootModuloP() {
         Key[] keys = new Key[]{
-            Key.generateKey(4),
-            Key.generateKey(10),
-            Key.generateKey(16),
-            Key.generateKey(20)
+                Key.generateKey(4),
+                Key.generateKey(10),
+                Key.generateKey(16),
+                Key.generateKey(20)
         };
 
-        for (int j = 0; j < 4; j++){
+        for (int j = 0; j < 4; j++) {
             BigInteger i = BigInteger.ONE;
             BigInteger product = BigInteger.ONE;
-            for (; i.compareTo(keys[j].getPublicKey().getKeyP().subtract(BigInteger.ONE)) <= 0; i = i.add(BigInteger.ONE)){
+            for (; i.compareTo(keys[j].getPublicKey().getKeyP().subtract(BigInteger.ONE)) <= 0; i = i.add(BigInteger.ONE)) {
                 product = product.multiply(keys[j].getPublicKey().getKeyG());
             }
 
