@@ -1,7 +1,6 @@
 package com.cryptology.elgamal;
 
 import java.math.BigInteger;
-import java.util.Date;
 import java.util.Random;
 
 public class Key {
@@ -15,9 +14,6 @@ public class Key {
     }
 
     /**
-     * Generates a key for ElGamal encryption scheme.
-     * The key consists of public and private keys.
-     * <p>
      * Generates prime number "p" of (keyBitLength) bitlength.
      * Computes the smallest primitive root modulo p, called "g", g < p.
      * Takes random "x" < p.
@@ -33,10 +29,10 @@ public class Key {
      *                     3 < keyBitLength < 20
      */
     public static Key generateKey(int keyBitLength) {
-        Random random = new Random(new Date().getTime());
+        Random random = new Random();
         BigInteger p = new BigInteger(keyBitLength, CERTAINTY, random);
         BigInteger g = primitiveRootModulo(p);
-        BigInteger x = new BigInteger(keyBitLength - 1, CERTAINTY, new Random(new Date().getTime()));
+        BigInteger x = new BigInteger(keyBitLength - 1, CERTAINTY, new Random());
         BigInteger y = g.modPow(x, p);
 
         return new Key(new PublicKey(y, g, p), new PrivateKey(x));
